@@ -46,8 +46,8 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun ArtSpaceScreen() {
-    var index by remember { mutableStateOf(0) }        // trạng thái vị trí hiện tại
-    val current = artworks[index]                      // tác phẩm đang hiển thị
+    var index by remember { mutableStateOf(0) }
+    val current = artworks[index]
 
     Column(
         modifier = Modifier
@@ -56,18 +56,25 @@ fun ArtSpaceScreen() {
         verticalArrangement = Arrangement.SpaceBetween,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        ArtworkWall(current)       // vùng ảnh (theo tác phẩm hiện tại)
-        ArtworkInfoCard(current)   // thẻ thông tin (theo tác phẩm hiện tại)
-        ControlBar(                 // hàng nút có xử lý onClick
+        ArtworkWall(current)
+        ArtworkInfoCard(current)
+        ControlBar(
             onPrevious = {
-                index = if (index > 0) index - 1 else artworks.lastIndex
+                index = when (index) {
+                    0 -> artworks.lastIndex        // nếu đang ở đầu thì quay về cuối
+                    else -> index - 1              // còn lại thì lùi 1
+                }
             },
             onNext = {
-                index = if (index < artworks.lastIndex) index + 1 else 0
+                index = when (index) {
+                    artworks.lastIndex -> 0        // nếu đang ở cuối thì quay về đầu
+                    else -> index + 1              // còn lại thì tiến 1
+                }
             }
         )
     }
 }
+
 
 @Composable
 fun ControlBar(

@@ -6,6 +6,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -16,7 +17,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.artspaceapp.ui.theme.ArtSpaceAppTheme
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 
+// ===== Data =====
 data class Artwork(
     val imageRes: Int,
     val title: String,
@@ -30,6 +34,7 @@ val artworks = listOf(
     Artwork(R.drawable.monalisa, "Mona Lisa", "Leonardo da Vinci", "1503")
 )
 
+// ===== Activity =====
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -37,18 +42,64 @@ class MainActivity : ComponentActivity() {
         setContent {
             ArtSpaceAppTheme {
                 Surface(color = MaterialTheme.colorScheme.background) {
-                    ArtSpaceScreen() // màn hình tương tác
+                    ArtSpaceScreen()
                 }
             }
         }
     }
 }
 
+// ===== Screens =====
 @Composable
 fun ArtSpaceScreen() {
     var index by remember { mutableStateOf(0) }
     val current = artworks[index]
 
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        val isTablet = maxWidth >= 800.dp
+
+        if (isTablet) {
+            ArtSpaceTablet(
+                artwork = current,
+                onPrevious = {
+                    index = when (index) {
+                        0 -> artworks.lastIndex
+                        else -> index - 1
+                    }
+                },
+                onNext = {
+                    index = when (index) {
+                        artworks.lastIndex -> 0
+                        else -> index + 1
+                    }
+                }
+            )
+        } else {
+            ArtSpaceCompact(
+                artwork = current,
+                onPrevious = {
+                    index = when (index) {
+                        0 -> artworks.lastIndex
+                        else -> index - 1
+                    }
+                },
+                onNext = {
+                    index = when (index) {
+                        artworks.lastIndex -> 0
+                        else -> index + 1
+                    }
+                }
+            )
+        }
+    }
+}
+
+@Composable
+fun ArtSpaceCompact(
+    artwork: Artwork,
+    onPrevious: () -> Unit,
+    onNext: () -> Unit
+) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -56,26 +107,72 @@ fun ArtSpaceScreen() {
         verticalArrangement = Arrangement.SpaceBetween,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        ArtworkWall(current)
-        ArtworkInfoCard(current)
-        ControlBar(
-            onPrevious = {
-                index = when (index) {
-                    0 -> artworks.lastIndex        // nếu đang ở đầu thì quay về cuối
-                    else -> index - 1              // còn lại thì lùi 1
-                }
-            },
-            onNext = {
-                index = when (index) {
-                    artworks.lastIndex -> 0        // nếu đang ở cuối thì quay về đầu
-                    else -> index + 1              // còn lại thì tiến 1
-                }
-            }
-        )
+        ArtworkWall(artwork)             // ảnh vuông trên phone
+        ArtworkInfoCard(artwork)
+        ControlBar(onPrevious, onNext)
     }
 }
 
+@Composable
+fun ArtSpaceTablet(
+    artwork: Artwork,
+    onPrevious: () -> Unit,
+    onNext: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp)
+    ) {
+        // Cụm nội dung giữa màn hình (giới hạn bề rộng để không quá to)
+        Column(
+            modifier = Modifier
+                .align(Alignment.Center)
+                .widthIn(max = 600.dp)
+                .padding(horizontal = 8.dp)
+                .verticalScroll(rememberScrollState()),   // ✅ nếu nội dung cao quá thì cuộn nhẹ
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            ArtworkWall(
+                artwork = artwork,
+                aspectRatio = 3f / 4f,
+                modifier = Modifier.heightIn(max = 420.dp) // ✅ giới hạn chiều cao ảnh
+            )
+            ArtworkInfoCard(artwork)                       // ✅ luôn còn chỗ hiển thị
+        }
 
+        // Nút trái dưới
+        Row(
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .padding(16.dp)
+                .widthIn(max = 200.dp)
+        ) {
+            Button(
+                onClick = onPrevious,
+                shape = RoundedCornerShape(24.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) { Text("Previous") }
+        }
+
+        // Nút phải dưới
+        Row(
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(16.dp)
+                .widthIn(max = 200.dp)
+        ) {
+            Button(
+                onClick = onNext,
+                shape = RoundedCornerShape(24.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) { Text("Next") }
+        }
+    }
+}
+
+// ===== UI Pieces =====
 @Composable
 fun ControlBar(
     onPrevious: () -> Unit,
@@ -102,11 +199,15 @@ fun ControlBar(
 }
 
 @Composable
-fun ArtworkWall(artwork: Artwork) {
+fun ArtworkWall(
+    artwork: Artwork,
+    aspectRatio: Float = 1f,
+    modifier: Modifier = Modifier            // ✅ thêm
+) {
     Surface(
         tonalElevation = 2.dp,
         shadowElevation = 2.dp,
-        modifier = Modifier
+        modifier = modifier                   // ✅ dùng modifier truyền vào
             .fillMaxWidth()
             .padding(8.dp)
     ) {
@@ -116,14 +217,15 @@ fun ArtworkWall(artwork: Artwork) {
         ) {
             Image(
                 painter = painterResource(id = artwork.imageRes),
-                contentDescription = artwork.title, // có mô tả trợ năng
+                contentDescription = artwork.title,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .aspectRatio(1f) // giữ khung vuông như bạn đang dùng
+                    .aspectRatio(aspectRatio)
             )
         }
     }
 }
+
 
 @Composable
 fun ArtworkInfoCard(artwork: Artwork) {
@@ -158,10 +260,15 @@ fun ArtworkInfoCard(artwork: Artwork) {
     }
 }
 
-@Preview(showBackground = true, showSystemUi = true)
+// ===== Previews =====
+@Preview(showBackground = true, widthDp = 411, heightDp = 891)
 @Composable
-fun PreviewArtSpace() {
-    ArtSpaceAppTheme {
-        ArtSpaceScreen()
-    }
+fun PreviewPhonePortrait() {
+    ArtSpaceAppTheme { ArtSpaceScreen() }
+}
+
+@Preview(showBackground = true, widthDp = 1280, heightDp = 800)
+@Composable
+fun PreviewTabletLandscape() {
+    ArtSpaceAppTheme { ArtSpaceScreen() }
 }

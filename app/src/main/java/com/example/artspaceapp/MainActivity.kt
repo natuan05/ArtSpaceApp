@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import com.example.artspaceapp.ui.theme.ArtSpaceAppTheme
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.layout.ContentScale
 
 // ===== Data =====
 data class Artwork(
@@ -136,7 +137,6 @@ fun ArtSpaceTablet(
         ) {
             ArtworkWall(
                 artwork = artwork,
-                aspectRatio = 3f / 4f,
                 modifier = Modifier.heightIn(max = 420.dp) // ✅ giới hạn chiều cao ảnh
             )
             ArtworkInfoCard(artwork)                       // ✅ luôn còn chỗ hiển thị
@@ -201,7 +201,6 @@ fun ControlBar(
 @Composable
 fun ArtworkWall(
     artwork: Artwork,
-    aspectRatio: Float = 1f,
     modifier: Modifier = Modifier            // ✅ thêm
 ) {
     Surface(
@@ -212,15 +211,18 @@ fun ArtworkWall(
             .padding(8.dp)
     ) {
         Box(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxWidth()
+                .heightIn(min = 200.dp, max = 400.dp),
             contentAlignment = Alignment.Center
         ) {
             Image(
                 painter = painterResource(id = artwork.imageRes),
                 contentDescription = artwork.title,
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .aspectRatio(aspectRatio)
+                    .fillMaxSize(),
+                contentScale = ContentScale.Fit
             )
         }
     }
